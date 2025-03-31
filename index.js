@@ -35,7 +35,7 @@ bot.on('message', (msg) => {
       ru: 'Добро пожаловать в OKMarket Бот!',
       uz: 'OKMarket Botiga xush kelibsiz!'
     };
-    bot.sendMessage(chatId, welcomeMessages.en); // Default to English
+    bot.sendMessage(chatId, welcomeMessages.uz); // Default to Uzbek
   }
 
   // Forward messages to employee group
