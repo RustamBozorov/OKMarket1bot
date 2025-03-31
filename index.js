@@ -39,7 +39,6 @@ i18n.init({
 });
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-const EMPLOYEE_GROUP = env.EMPLOYEE_GROUP_ID; // Replace with your group chat ID
 
 // Start command: Language selection
 bot.start((ctx) => {
@@ -68,7 +67,7 @@ function submitOrder(orderDetails, chatId) {
 
   // Always notify employee group
   bot.telegram.sendMessage(
-    EMPLOYEE_GROUP,
+    EMPLOYEE_GROUP_ID,
     i18n.t('employee_alert', {
       orderId,
       customerName: orderDetails.customerName,
