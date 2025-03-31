@@ -1,116 +1,54 @@
-const { Telegraf, Markup } = require('telegraf');
-const i18n = require('i18next');
+const TelegramBot = require('node-telegram-bot-api');
+const express = require('express');
+const bodyParser = require('body-parser');
 
-// Initialize translations (Uzbek, Russian, English)
-i18n.init({
-  lng: 'uz',
-  resources: {
-    uz: {
-      translation: {
-        welcome: 'Assalomu alaykum! Tilni tanlang:',
-        ask_notification: 'Buyurtma yangiliklarni Telegram orqali olishni xohlaysizmi?',
-        order_received: 'Buyurtma qabul qilindi! ID: {{orderId}}',
-        employee_alert: '🛒 Yangi buyurtma #{{orderId}}\nMijoz: {{customerName}}\nMahsulotlar:\n{{products}}',
-        confirm_button: '✅ Tasdiqlash',
-        cancel_button: '❌ Bekor qilish'
-      }
-    },
-    ru: {
-      translation: {
-        welcome: 'Здравствуйте! Выберите язык:',
-        ask_notification: 'Хотите получать уведомления о заказе в Telegram?',
-        order_received: 'Заказ принят! ID: {{orderId}}',
-        employee_alert: '🛒 Новый заказ #{{orderId}}\nКлиент: {{customerName}}\nТовары:\n{{products}}',
-        confirm_button: '✅ Подтвердить',
-        cancel_button: '❌ Отменить'
-      }
-    },
-    en: {
-      translation: {
-        welcome: 'Hello! Choose a language:',
-        ask_notification: 'Do you want order updates via Telegram?',
-        order_received: 'Order received! ID: {{orderId}}',
-        employee_alert: '🛒 New order #{{orderId}}\nCustomer: {{customerName}}\nProducts:\n{{products}}',
-        confirm_button: '✅ Confirm',
-        cancel_button: '❌ Cancel'
-      }
-    }
+// Initialize Telegram bot
+const token = process.env.TELEGRAM_BOT_TOKEN;
+const bot = new TelegramBot(token);
+const app = express();
+
+// Middleware
+app.use(bodyParser.json());
+
+// Webhook setup
+app.post(`/webhook/${token}`, (req, res) => {
+  bot.processUpdate(req.body);
+  res.sendStatus(200);
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  bot.setWebHook(`${process.env.WEBHOOK_URL}/webhook/${token}`);
+});
+
+// Bot commands and messages
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
+  // Handle commands
+  if (text === '/start') {
+    const welcomeMessages = {
+      en: 'Welcome to OKMarket Bot!',
+      ru: 'Добро пожаловать в OKMarket Бот!',
+      uz: 'OKMarket Botiga xush kelibsiz!'
+    };
+    bot.sendMessage(chatId, welcomeMessages.en); // Default to English
+  }
+
+  // Forward messages to employee group
+  if (chatId.toString() !== process.env.EMPLOYEE_GROUP_ID) {
+    const forwardText = `New message from ${msg.from.first_name} ${msg.from.last_name || ''} (${msg.from.username || 'no username'}):\n${text}`;
+    bot.sendMessage(process.env.EMPLOYEE_GROUP_ID, forwardText);
   }
 });
 
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-
-// Start command: Language selection
-bot.start((ctx) => {
-  ctx.reply(
-    i18n.t('welcome'),
-    Markup.inlineKeyboard([
-      [Markup.button.callback('🇺🇿 Uzbek', 'set_lang_uz')],
-      [Markup.button.callback('🇷🇺 Russian', 'set_lang_ru')],
-      [Markup.button.callback('🇬🇧 English', 'set_lang_en')],
-    ])
-  );
+// Handle order notifications
+bot.onText(/New Order/, (msg) => {
+  const groupId = process.env.EMPLOYEE_GROUP_ID;
+  bot.sendMessage(groupId, msg.text, { parse_mode: 'Markdown' });
 });
 
-// Language selection handler
-bot.action(/set_lang_(.+)/, (ctx) => {
-  const lang = ctx.match[1];
-  i18n.changeLanguage(lang);
-  ctx.editMessageText(i18n.t('language_changed'));
-  ctx.reply(i18n.t('menu'));
-});
-
-// Mock function: Replace with actual API call from your mobile app
-function submitOrder(orderDetails, chatId) {
-  const orderId = `ORDER-${Math.random().toString(36).substring(2, 8)}`;
-  const productsText = orderDetails.items.map(item => `${item.name} x${item.qty}`).join('\n');
-
-  // Always notify employee group
-  bot.telegram.sendMessage(
-    EMPLOYEE_GROUP_ID,
-    i18n.t('employee_alert', {
-      orderId,
-      customerName: orderDetails.customerName,
-      products: productsText
-    }),
-    Markup.inlineKeyboard([
-      [Markup.button.callback(i18n.t('confirm_button'), `confirm_${orderId}`)],
-      [Markup.button.callback(i18n.t('cancel_button'), `cancel_${orderId}`)]
-    ])
-  );
-
-  // Notify customer if opted in
-  if (orderDetails.notifyViaTelegram && chatId) {
-    bot.telegram.sendMessage(
-      chatId,
-      i18n.t('order_received', { orderId })
-    );
-  }
-  return orderId;
-}
-
-// Simulate order from mobile app (for testing)
-bot.command('testorder', (ctx) => {
-  const orderDetails = {
-    customerName: 'Test User',
-    items: [{ name: 'Apple', qty: 2 }, { name: 'Milk', qty: 1 }],
-    notifyViaTelegram: true // Change to false to test employee-only flow
-  };
-  submitOrder(orderDetails, ctx.chat.id);
-});
-
-// Employee actions (confirm/cancel)
-bot.action(/confirm_(.+)/, (ctx) => {
-  const orderId = ctx.match[1];
-  ctx.editMessageText(`✅ ${orderId} confirmed by ${ctx.from.first_name}`);
-  // Add logic to update your database
-});
-
-bot.action(/cancel_(.+)/, (ctx) => {
-  const orderId = ctx.match[1];
-  ctx.editMessageText(`❌ ${orderId} cancelled by ${ctx.from.first_name}`);
-  // Add logic to update your database
-});
-
-bot.launch();
-console.log('Bot is running!');
+module.exports = bot;
