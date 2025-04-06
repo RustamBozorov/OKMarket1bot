@@ -12,7 +12,7 @@ app.get('/health', (req, res) => {
 });
 
 // Start Express server
-app.listen(10000, '0.0.0.0', () => {   // Explicitly listen on all interfaces
+app.listen(PORT, '0.0.0.0', () => {   // Explicitly listen on all interfaces
   console.log(`Server running on port 10000`);
 });
 
