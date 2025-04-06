@@ -17,8 +17,8 @@ app.post(`/webhook/${token}`, (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, '0.0.0.0', () => {   // Explicitly listen on all interfaces
   console.log(`Server running on port ${PORT}`);
   bot.setWebHook(`${process.env.WEBHOOK_URL}/webhook/${token}`);
 });
