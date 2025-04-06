@@ -12,9 +12,8 @@ app.get('/health', (req, res) => {
 });
 
 // Start Express server
-const PORT = process.env.PORT || 10000; // Render injects PORT automatically
-app.listen(PORT, '0.0.0.0', () => {   // Explicitly listen on all interfaces
-  console.log(`Server running on port ${PORT}`);
+app.listen(10000, '0.0.0.0', () => {   // Explicitly listen on all interfaces
+  console.log(`Server running on port 10000`);
 });
 
 // Start Telegram Bot (uses webhook or polling)
