@@ -12,8 +12,8 @@ app.get('/health', (req, res) => {
 });
 
 // Start Express server
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
+const PORT = process.env.PORT || 10000; // Render injects PORT automatically
+app.listen(PORT, '0.0.0.0', () => {   // Explicitly listen on all interfaces
   console.log(`Server running on port ${PORT}`);
 });
 
